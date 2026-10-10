@@ -1,0 +1,24 @@
+# 虚拟环境（venv 建在技能目录之外，此处仅作兜底）
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+
+# 运行时产物
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+
+# 本地备份（时间戳快照不入库）
+*.bak
+*.bak-*
+*.deprecated-*
