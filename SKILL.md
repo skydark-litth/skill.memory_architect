@@ -1,6 +1,7 @@
 ---
 name: memory-architect
-description: Use this skill when the user asks to organize, audit, consolidate, or upgrade memory files (记忆整理/记忆架构/整理记忆/MEMORY.md 梳理/把案例变成规律/提炼元规则/记忆体检/记忆过期治理). This skill audits all memory layers (user-level, per-project, per-task daily logs), diagnoses case-vs-rule ratio, proposes a deletion list for confirmation, distills cases into "rule + Why + coverage" form, generates auto-triggering meta-rules, and writes results back with backups. Triggers include "整理记忆", "记忆架构师", "记忆体检", "把案例提炼成规律", "生成元规则", "记忆过期了".
+description: Use this skill when the user asks to organize, audit, consolidate, or upgrade memory files (记忆整理/整理本地记忆/记忆架构/整理记忆/MEMORY.md 梳理/把案例变成规律/提炼元规则/记忆体检/记忆过期治理). This skill audits all memory layers (user-level, per-project, per-task daily logs), diagnoses case-vs-rule ratio, proposes a deletion list for confirmation, distills cases into "rule + Why + coverage" form, generates auto-triggering meta-rules, and writes results back with backups. WARNING: user-level MEMORY.md is auto-rewritten by the platform (section headers get stripped) and session injection truncates at ~4000 chars (tail never reaches the agent) — audit char length and verify after every write. Triggers include "整理记忆", "整理本地记忆", "记忆架构师", "记忆体检", "把案例提炼成规律", "生成元规则", "记忆过期了".
+display_name: "记忆架构师"
 agent_created: true
 ---
 
@@ -106,7 +107,7 @@ find "<工作区根>" -maxdepth 4 -name "MEMORY*.md"
 1. **执行概览**：起止时间、执行范围（用户级/项目级/任务级各几个文件）。
 2. **备份文件情况**：每个备份的绝对路径、来源版本、行数。
 3. **诊断情况**：逐文件的行数 + 案例/规律/元规则/死链的判定结果，用表格。
-4. **数据处理情况**：**含「修改过的文件明细」**——逐文件列出绝对路径 + 具体修改内容，至少覆盖：重写 / 修订 / 新建 / 备份 / 删除 / 临时文件 / 未修改。
+4. **数据处理情况**：**含「修改过的文件明细」**——逐文件列出**完整绝对路径** + 具体修改内容，至少覆盖：重写 / 修订 / 新建 / 备份 / 删除 / 临时文件 / 未修改。路径必须写出**完整绝对路径**（如 `C:\Users\<用户名>\.workbuddy\user-<id>-personal\MEMORY.md`），禁止只写文件名或相对路径（与用户级元规则「每次改完列出改动文件的完整路径」一致）。
 5. **规律提炼情况**：提炼出哪些规律（族）、各自 Why 与覆盖。
 6. **元规则生成情况**：新增/合并/保留的元规则条目清单。
 7. **执行中的异常与处置**：本次遇到的报错、误报、边界情况及如何处理。
@@ -123,6 +124,13 @@ find "<工作区根>" -maxdepth 4 -name "MEMORY*.md"
    - **回收站按卷隔离**：删除的文件进「该文件所在卷」的 `$Recycle.Bin`，不在系统盘。
    - COM 方式读回收站被安全策略拦截，改用文件系统直接 `ls`。
 5. 若核实失败（`$R` 缺失），**立即向用户报告并停止后续删除**。
+
+## 实测陷阱（历次审计发现，必须遵守）
+
+1. **会话注入截断（信息黑洞）**：用户级 MEMORY.md 注入会话时约 **4000 字符**处被截断，超出部分（含整个项目约定节、部分规律）**从不进入任何会话上下文**。诊断用 Python `len(open(p,encoding='utf-8').read())` 取真实字符数并定位截断偏移；落盘后保证关键规则落在前 4000 字符内，项目级内容迁到工作区记忆（Layer 3）而非堆在用户级。
+2. **PS 5.1 读取中文文件按 GBK 误读**：对**无 BOM** 的 UTF-8 中文文件，`Get-Content`/字符串操作会按 GBK 解码，行数/字符数统计失真（实测 4604 字符被报成 5566、58 行被报成 12 行）。统计与判读一律用 Python 读字节；写入 `.ps1` 必须 UTF-8 with BOM。
+3. **PowerShell 不回显 stdout**：工具只返回退出码、不回显 stdout/stderr（`gh`、`& script.ps1`、`Set-ExecutionPolicy Bypass`、Bash 调 powershell.exe 均被拦）。结果一律**写文件（UTF-8 BOM）→ Read 读回**，不靠退出码猜。
+4. **用户级 MEMORY.md 被平台自动重写**：平台记忆同步会剥离 Markdown 小节标题、重组内容（实测标题被清空为单个 `#`）。写前必须建 `.bak-<时间戳>` 快照；写后必须立即读回复核内容是否保留；不要依赖小节标题做导航，技能聚焦规则内容本身。
 
 ## 参考文档
 
