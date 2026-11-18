@@ -1,6 +1,6 @@
 ---
 name: memory-architect
-description: Use this skill when the user asks to organize, audit, consolidate, or upgrade memory files (记忆整理/整理本地记忆/记忆架构/整理记忆/MEMORY.md 梳理/把案例变成规律/提炼元规则/记忆体检/记忆过期治理). This skill audits all memory layers (user-level, per-project, per-task daily logs), diagnoses case-vs-rule ratio, proposes a deletion list for confirmation, distills cases into "rule + Why + coverage" form, generates auto-triggering meta-rules, and writes results back with backups. WARNING: user-level MEMORY.md is auto-rewritten by the platform (section headers get stripped) and session injection truncates at ~4000 chars (tail never reaches the agent) — audit char length and verify after every write. Triggers include "整理记忆", "整理本地记忆", "记忆架构师", "记忆体检", "把案例提炼成规律", "生成元规则", "记忆过期了".
+description: Use this skill when the user asks to organize, audit, consolidate, or upgrade memory files (记忆整理/整理本地记忆/记忆架构/整理记忆/MEMORY.md 梳理/把案例变成规律/提炼元规则/记忆体检/记忆过期治理). This skill audits all memory layers (user-level, per-project, per-task daily logs), diagnoses case-vs-rule ratio, proposes a deletion list for confirmation, distills cases into "rule + Why + coverage" form, generates auto-triggering meta-rules, and writes results back with backups. User-level MEMORY.md carries meta-rules ONLY: flat bullets, no numbering, no type tags, no section headers. WARNING: user-level MEMORY.md is auto-rewritten by the platform (section headers get stripped) and session injection truncates at ~4000 chars (tail never reaches the agent) — audit char length and verify after every write. Triggers include "整理记忆", "整理本地记忆", "记忆架构师", "记忆体检", "把案例提炼成规律", "生成元规则", "记忆过期了".
 display_name: "记忆架构师"
 agent_created: true
 ---
@@ -92,13 +92,19 @@ find "<工作区根>" -maxdepth 4 -name "MEMORY*.md"
 **遵守「蒸馏三条红线」**：提炼规律时不得丢失案例中的关键事实；元规则原文与环境事实（路径/账号/版本号/命令）逐字保留，只压缩过程叙述。
 
 - **直接把「元规则 + 精简规律 + 压缩案例」写回各自来源的记忆文件**，保持精简。不建索引、不拆到别的文件。
-- **所有元规则（用户级/项目级/任务级）全汇总到一起，写回用户级记忆文件。**
-- 项目规律写回各自项目 MEMORY.md；跨项目的通用规律上收用户级。
+- **所有元规则（用户级/项目级/任务级）全汇总到一起，写回用户级记忆文件——且只写元规则。**
+- 项目规律写回各自项目 MEMORY.md；跨项目的通用规律写入最相关的项目/工作区记忆，**不上收用户级**（用户级只承载元规则）。
 - 落盘后执行自检表（见 `references/distillation.md`）：对照原文件核验信息损失为 0。
 
 ### 第 5 步：用户级记忆文件完整整理修订
 
-按「元规则 / 环境事实 / 规律 / 项目约定」四区重构，统一「规律 + Why + 覆盖」格式。
+用户级文件**只承载元规则**，格式从简：
+
+- **只放元规则**：不绑定具体问题的通用原则。环境事实、技术规律、项目约定、案例细节一律不进用户级，写回各自项目/工作区记忆。
+- **不加编号**：纯 `- ` 列表，不写 `1.` `2.` `3.`。
+- **不加类型标记**：不写 `[元]`/`[规律]`/`[环境]`/`[约定]` 前缀，也不写 `## 元规则` 之类小节标题（平台会剥离标题，编号与标记只是噪声）。
+- **一条一行**：`- **规则名**：内容`，规则名加粗，其余原文逐字保留（含括号里的日期与用户原话）。
+- **字符预算**：注入截断线约 4000 字符，写后必须用 Python `len()` 复核，并把真实字符数写进汇报。
 
 ### 第 6 步：生成任务汇报
 
@@ -130,7 +136,7 @@ find "<工作区根>" -maxdepth 4 -name "MEMORY*.md"
 1. **会话注入截断（信息黑洞）**：用户级 MEMORY.md 注入会话时约 **4000 字符**处被截断，超出部分（含整个项目约定节、部分规律）**从不进入任何会话上下文**。诊断用 Python `len(open(p,encoding='utf-8').read())` 取真实字符数并定位截断偏移；落盘后保证关键规则落在前 4000 字符内，项目级内容迁到工作区记忆（Layer 3）而非堆在用户级。
 2. **PS 5.1 读取中文文件按 GBK 误读**：对**无 BOM** 的 UTF-8 中文文件，`Get-Content`/字符串操作会按 GBK 解码，行数/字符数统计失真（实测 4604 字符被报成 5566、58 行被报成 12 行）。统计与判读一律用 Python 读字节；写入 `.ps1` 必须 UTF-8 with BOM。
 3. **PowerShell 不回显 stdout**：工具只返回退出码、不回显 stdout/stderr（`gh`、`& script.ps1`、`Set-ExecutionPolicy Bypass`、Bash 调 powershell.exe 均被拦）。结果一律**写文件（UTF-8 BOM）→ Read 读回**，不靠退出码猜。
-4. **用户级 MEMORY.md 被平台自动重写**：平台记忆同步会剥离 Markdown 小节标题、重组内容（实测标题被清空为单个 `#`）。写前必须建 `.bak-<时间戳>` 快照；写后必须立即读回复核内容是否保留；不要依赖小节标题做导航，技能聚焦规则内容本身。
+4. **用户级 MEMORY.md 被平台自动重写**：平台记忆同步会剥离 Markdown 小节标题、重组内容（实测标题被清空为单个 `#`，编号条目被打散）。写前必须建 `.bak-<时间戳>` 快照；写后必须立即读回复核内容是否保留。**结构越简单越抗重写**——用户级只保留无编号、无类型标记的元规则 bullet（见第 5 步），不使用小节标题做导航。
 
 ## 参考文档
 
